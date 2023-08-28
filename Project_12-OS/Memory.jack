@@ -1,0 +1,146 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Memory.jack
+
+/**
+ * This library provides two services: direct access to the computer's main
+ * memory (RAM), and allocation and recycling of memory blocks. The Hack RAM
+ * consists of 32,768 words, each holding a 16-bit binary number.
+ */ 
+class Memory {
+    static Array heap;
+    static Array ram;
+    static int freeList,lastSegment;
+
+
+    /** Initializes the class. */
+    function void init() {
+        let ram = 0;
+        let heap= 2048;
+        let freeList=0;
+        let heap[0]=0;
+        let heap[1]=14334; //lautFolie 14335könnte aber auch 14334 sein
+        return;
+    }
+
+    /** Returns the RAM value at the given address. */
+    function int peek(int address) {
+        return ram [address];
+    }
+
+    /** Sets the RAM value at the given address to the given value. */
+    function void poke(int address, int value) {
+        let ram [address] = value;
+        return;
+    }
+
+
+    /** Finds an available RAM block of the given size and returns
+     *  a reference to its base address. */
+    function int alloc(int size) {
+        var boolen freeFound,continueFreeSearch,didDefarg;
+        var int currentSegment,newSegment,block;
+
+        if(size<1){
+            do Sys.error(5);
+        }
+
+        let freeFound = false;
+        let didDefarg = false;
+        let continueFreeSearch = true;
+        let currentSegment = freeList;
+
+        
+
+        //finde first
+        while(continueFreeSearch){
+            if (heap[currentSegment+1]>(size+2)){ 
+                let continueFreeSearch = false;
+                let freeFound = true;
+            }else{
+                if(heap[currentSegment]=0){
+                    if (~didDefarg){
+                        do Memory.defrag();
+                        let didDefarg = true;
+                        let currentSegment = freeList;
+                    }else{
+                        let continueFreeSearch = false;
+                    }
+                }else{
+                    let currentSegment = heap[currentSegment];
+                }
+            }
+        }
+
+        // if not free maybe defrag
+
+
+        //carve out block
+        if (freeFound){
+            let newSegment = currentSegment + heap[currentSegment+1] - size;
+            let block = newSegment+2+ heap ;
+            let heap[newSegment]=0;
+            let heap[newSegment+1]=size;
+            let heap[currentSegment+1]= heap[currentSegment+1] - 2 - size;
+        } else {
+            do Sys.error(6);
+        }
+        return block;
+    }
+
+    /** De-allocates the given object (cast as an array) by making
+     *  it available for future allocations. */
+    function void deAlloc(Array o) {
+        let heap[o-2-heap]=0;
+        let heap[lastSegment]= o-2-heap;
+        let lastSegment = o-2-heap;
+
+    
+        return;
+    }
+
+    function void defrag(){
+        var int currentSegment, potentialNext,checkingSegment;
+        var boolen continueDefrag,continueDefragSearch;
+        let continueDefrag = true;
+        let currentSegment= freeList;
+        
+        
+        while( continueDefrag){
+            let potentialNext = currentSegment + 2 + heap [currentSegment+1];
+            let continueDefragSearch = true;
+            let checkingSegment = freeList;
+            while (continueDefragSearch){
+                
+                if (checkingSegment=potentialNext){
+                    let heap[currentSegment+1] = heap[currentSegment+1] + heap[checkingSegment+1] +2;
+                    let heap[currentSegment]=heap[checkingSegment];
+                    let checkingSegment = freeList;
+                    let potentialNext = currentSegment + 2 + heap [currentSegment+1];
+                    
+                }else{
+                    if (heap[checkingSegment]= 0){
+                        let continueDefragSearch = false;
+                    }else{
+                        let checkingSegment = heap[checkingSegment];
+                    }
+                }
+            }
+
+
+            if (heap[currentSegment]= 0){
+                let continueDefrag = false;
+                let lastSegment = currentSegment;
+            }else{
+                let currentSegment = heap[currentSegment];
+            }
+        }
+
+
+
+        return;
+    }
+
+    
+}
